@@ -3,31 +3,25 @@ defmodule Opis do
   Documentation for `Opis`.
   """
 
+  @doc """
+  Trace the given process, building a call tree.
+
+  Returns the result of the given expression.  Use `calls/1` to get the
+  generated call tree.
+  """
   defmacro analyze(do: expr) do
     quote do
-      # Start our monitor
-      {:ok, var!(server)} = Opis.Server.start_link()
+      Opis.Server.start_tracing()
+      result = unquote(expr)
+      Opis.Server.stop_tracing()
 
-      # Start tracing
-      :erlang.trace(self(), true, [:call, tracer: var!(server)])
-      :erlang.trace_pattern({:_, :_, :_}, true, [:local])
-
-      unquote(expr)
-
-      # Stop tracing
-      :erlang.trace(self(), false, [:call, tracer: var!(server)])
-
-      # Ensure all traces are delivered
-      :erlang.trace_delivered(var!(server))
-
-      receive do
-        {:trace_delivered, _, _} -> :ok
-      end
-
-      # This is a bit weird, but it ensures that all traces have been processed
-      # by the server.  When the server responds to our call, we can be assured
-      # that all the trace messages have already been handled.
-      :ok = GenServer.call(var!(server), :flush)
+      result
     end
   end
+
+  @doc """
+  Returns the call tree from tracing the given process.
+  """
+  defdelegate calls(), to: Opis.Server
+  defdelegate calls(pid), to: Opis.Server
 end

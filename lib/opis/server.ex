@@ -27,7 +27,7 @@ defmodule Opis.Server do
     {:noreply, state}
   end
 
-  def handle_call(:flush, state) do
+  def handle_call(:flush, _from, state) do
     {:reply, :ok, state}
   end
 end

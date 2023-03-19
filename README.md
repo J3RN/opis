@@ -38,7 +38,7 @@ This will return a call tree, something like this:
 
 `to_string` is implemented for the `Opis.Call` struct, so you can use `IO.puts` to view the calls in a more friendly format, e.g.
 
-```elixir
+```
 MyApp.do_thing() => {:ok, :success}
   MyApp.Thing.do_thing() => {:ok, success}
     # etc

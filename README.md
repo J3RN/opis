@@ -31,7 +31,7 @@ This will return a call tree, something like this:
   %Opis.Call{call: {MyApp, :do_thing, []}, return: {:ok, :success}, children: [
     %Opis.Call{call: {MyApp.Thing.do_thing, []}, return: {:ok, success}, children: [
       # etc
-	]}
+    ]}
   ]}
 ]
 ```

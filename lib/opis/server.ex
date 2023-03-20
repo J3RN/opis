@@ -14,7 +14,6 @@ defmodule Opis.Server do
 
   def start_link(_opts) do
     with {:ok, pid} <- GenServer.start_link(__MODULE__, %{}, name: __MODULE__) do
-      :erlang.trace_pattern({:_, :_, :_}, [{:_, [], [{:return_trace}]}], [:local])
       {:ok, pid}
     end
   end
@@ -22,9 +21,11 @@ defmodule Opis.Server do
   def start_tracing(pid \\ self()) do
     GenServer.call(__MODULE__, {:start_tracing, pid})
     :erlang.trace(pid, true, [:call, tracer: Process.whereis(__MODULE__)])
+    :erlang.trace_pattern({:_, :_, :_}, [{:_, [], [{:return_trace}]}], [:local])
   end
 
   def stop_tracing(pid \\ self()) do
+    :erlang.trace_pattern({:_, :_, :_}, false, [:local])
     :erlang.trace(pid, false, [:call, tracer: Process.whereis(__MODULE__)])
 
     # Ensure all traces are delivered

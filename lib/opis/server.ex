@@ -40,9 +40,7 @@ defmodule Opis.Server do
     # As a side effect, using `call` here ensures that the server has processed
     # all tracing messages since messages are processed sequentially.
     with {:ok, calls} <- GenServer.call(__MODULE__, {:calls, pid}) do
-      # The last child will always be erlang.trace(self, false, ...); an artifact
-      # of this library and not something the user cares about.
-      {:ok, List.delete_at(calls.children, -1)}
+      {:ok, calls.children}
     end
   end
 

@@ -18,9 +18,7 @@ defmodule OpisTest do
 
   describe "analyze" do
     test "returns a call tree for a single function invocation" do
-      Opis.analyze do
-        Example.a(true, false)
-      end
+      Opis.analyze(fn -> Example.a(true, false) end)
 
       {:ok, result} = Opis.calls()
 
@@ -64,9 +62,9 @@ defmodule OpisTest do
     end
 
     test "returns two call trees for two function invocations" do
-      Opis.analyze do
+      Opis.analyze(fn ->
         Example.b(true) && Example.e(false)
-      end
+      end)
 
       {:ok, result} = Opis.calls()
 

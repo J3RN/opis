@@ -13,8 +13,7 @@ defmodule OpisTest do
   end
 
   setup do
-    start_supervised!(Opis.Server)
-    :ok
+    on_exit(fn -> Opis.clear() end)
   end
 
   describe "analyze" do

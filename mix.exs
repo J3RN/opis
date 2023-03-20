@@ -13,7 +13,8 @@ defmodule Opis.MixProject do
 
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      mod: {Opis.Application, []}
     ]
   end
 

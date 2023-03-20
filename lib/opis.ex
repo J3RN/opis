@@ -18,9 +18,13 @@ defmodule Opis do
   end
 
   @doc """
-  Returns the call tree from tracing the given process.
+  Returns the call tree for the current process.
   """
   defdelegate calls(), to: Opis.Server
+
+  @doc """
+  Returns the call tree from tracing the given process.
+  """
   defdelegate calls(pid), to: Opis.Server
 
   @doc """

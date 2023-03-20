@@ -22,4 +22,14 @@ defmodule Opis do
   """
   defdelegate calls(), to: Opis.Server
   defdelegate calls(pid), to: Opis.Server
+
+  @doc """
+  Clears the recorded traces for all processes.
+  """
+  defdelegate clear(), to: Opis.Server
+
+  @doc """
+  Clears the recorded traces for the current process.
+  """
+  defdelegate clear(pid), to: Opis.Server
 end

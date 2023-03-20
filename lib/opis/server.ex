@@ -44,6 +44,14 @@ defmodule Opis.Server do
     end
   end
 
+  def clear() do
+    GenServer.call(__MODULE__, :clear)
+  end
+
+  def clear(pid) do
+    GenServer.call(__MODULE__, {:clear, pid})
+  end
+
   ## Server
 
   def init(state) do
@@ -92,6 +100,14 @@ defmodule Opis.Server do
       end
 
     {:reply, result, state}
+  end
+
+  def handle_call(:clear, _from, _state) do
+    {:reply, :ok, %{}}
+  end
+
+  def handle_call({:clear, pid}, _from, state) do
+    {:reply, :ok, Map.delete(state, pid)}
   end
 
   defp put_call(calls, [], call) when is_list(calls) do

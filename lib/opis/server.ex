@@ -13,9 +13,7 @@ defmodule Opis.Server do
   ## Client
 
   def start_link(_opts) do
-    with {:ok, pid} <- GenServer.start_link(__MODULE__, %{}, name: __MODULE__) do
-      {:ok, pid}
-    end
+    GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
   end
 
   def start_tracing(pid \\ self()) do

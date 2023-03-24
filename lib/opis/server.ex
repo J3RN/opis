@@ -4,25 +4,38 @@ defmodule Opis.Server do
   use GenServer
 
   alias Opis.Call
+  alias Opis.TreeUtils
 
   defmodule State do
-    @type t :: %__MODULE__{calls: %Call{}, path: [term()]}
-    defstruct calls: %Call{}, path: []
+    @type t :: %__MODULE__{application: atom() | nil, processes: [pid()]}
+    defstruct [:application, processes: []]
   end
+
+  @ets_table :opis_calls
 
   ## Client
 
+  @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  @spec start_tracing() :: :ok
+  @spec start_tracing(pid()) :: :ok
   def start_tracing(pid \\ self()) do
     GenServer.call(__MODULE__, {:start_tracing, pid})
+
     :erlang.trace(pid, true, [:call, tracer: Process.whereis(__MODULE__)])
     :erlang.trace_pattern({:_, :_, :_}, [{:_, [], [{:return_trace}]}], [:local])
+
+    :ok
   end
 
+  @spec stop_tracing() :: :ok
+  @spec stop_tracing(pid()) :: :ok
   def stop_tracing(pid \\ self()) do
+    GenServer.call(__MODULE__, {:stop_tracing, pid})
+
     :erlang.trace_pattern({:_, :_, :_}, false, [:local])
     :erlang.trace(pid, false, [:call, tracer: Process.whereis(__MODULE__)])
 
@@ -34,18 +47,58 @@ defmodule Opis.Server do
     end
   end
 
+  @spec calls() :: [Call.t()]
+  @spec calls(pid()) :: [Call.t()]
   def calls(pid \\ self()) do
-    # As a side effect, using `call` here ensures that the server has processed
-    # all tracing messages since messages are processed sequentially.
-    with {:ok, calls} <- GenServer.call(__MODULE__, {:calls, pid}) do
-      {:ok, calls.children}
-    end
+    # Since `call` sends a message and waits for a reply, when this `call`
+    # returns we can be assured that the server has processed all tracing
+    # messages since messages are processed sequentially.
+    :ok = GenServer.call(__MODULE__, :ensure_finished)
+
+    @ets_table
+    |> build_call_tree(pid)
+    |> reverse_children()
   end
 
+  defp build_call_tree(ets_table, pid) do
+    {calls, _depth} =
+      :ets.foldl(
+        fn
+          {_id, ^pid, :call, call}, {tree, depth} ->
+            new_tree = TreeUtils.put_call(tree, depth, %Call{call: call})
+            {new_tree, depth + 1}
+
+          {_id, ^pid, :return, _call, value}, {tree, depth} ->
+            new_depth = depth - 1
+            new_tree = TreeUtils.specify_return(tree, new_depth, value)
+            {new_tree, new_depth}
+
+          _, {tree, depth} ->
+            {tree, depth}
+        end,
+        {[], 0},
+        ets_table
+      )
+
+    calls
+  end
+
+  defp reverse_children(calls) do
+    calls
+    |> Enum.map(fn call ->
+      TreeUtils.tree_map(call, :children, fn c ->
+        Map.update!(c, :children, &Enum.reverse/1)
+      end)
+    end)
+    |> Enum.reverse()
+  end
+
+  @spec clear() :: :ok
   def clear() do
     GenServer.call(__MODULE__, :clear)
   end
 
+  @spec clear(pid()) :: :ok
   def clear(pid) do
     GenServer.call(__MODULE__, {:clear, pid})
   end
@@ -53,86 +106,54 @@ defmodule Opis.Server do
   ## Server
 
   def init(_opts) do
-    {:ok, %{}}
+    @ets_table = :ets.new(:opis_calls, [:named_table, :ordered_set])
+    {:ok, %State{}}
   end
 
   def handle_info({:trace, pid, :call, call}, state) do
-    new_state =
-      case Map.fetch(state, pid) do
-        {:ok, %State{calls: calls, path: path} = substate} ->
-          {new_index, new_calls} = put_call(calls, Enum.reverse(path), %Call{call: call})
-          new_substate = %State{substate | path: [new_index | path], calls: new_calls}
-          %{state | pid => new_substate}
+    if pid in state.processes do
+      :ets.insert(@ets_table, {generate_id(@ets_table), pid, :call, call})
+    end
 
-        :error ->
-          state
-      end
-
-    {:noreply, new_state}
+    {:noreply, state}
   end
 
-  def handle_info({:trace, pid, :return_from, _call, value}, state) do
-    new_state =
-      case Map.fetch(state, pid) do
-        {:ok, %State{calls: calls, path: [_ | newpath] = path} = substate} ->
-          new_calls = update_call(calls, Enum.reverse(path), &%Call{&1 | return: value})
-          new_substate = %State{substate | calls: new_calls, path: newpath}
-          %{state | pid => new_substate}
+  def handle_info({:trace, pid, :return_from, call, value}, state) do
+    if pid in state.processes do
+      :ets.insert(@ets_table, {generate_id(@ets_table), pid, :return, call, value})
+    end
 
-        :error ->
-          state
-      end
-
-    {:noreply, new_state}
+    {:noreply, state}
   end
 
-  def handle_call({:start_tracing, pid}, _from, state) do
-    {:reply, :ok, Map.put(state, pid, %State{})}
+  defp generate_id(table) do
+    case :ets.last(table) do
+      :"$end_of_table" -> 0
+      num -> num + 1
+    end
   end
 
-  def handle_call({:calls, pid}, _from, state) do
-    result =
-      case Map.fetch(state, pid) do
-        {:ok, calls} -> {:ok, calls.calls}
-        :error -> {:error, :process_not_traced}
-      end
-
-    {:reply, result, state}
+  def handle_call({:start_tracing, pid}, _from, %State{processes: processes} = state) do
+    {:reply, :ok, %State{state | processes: [pid | processes]}}
   end
 
-  def handle_call(:clear, _from, _state) do
-    {:reply, :ok, %{}}
+  def handle_call({:stop_tracing, pid}, _from, %State{processes: processes} = state) do
+    {:reply, :ok, %State{state | processes: List.delete(processes, pid)}}
+  end
+
+  def handle_call(:ensure_finished, _from, state) do
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:clear, _from, state) do
+    :ets.delete_all_objects(@ets_table)
+    {:reply, :ok, state}
   end
 
   def handle_call({:clear, pid}, _from, state) do
-    {:reply, :ok, Map.delete(state, pid)}
-  end
+    :ets.match_delete(@ets_table, {:_, pid, :call, :_})
+    :ets.match_delete(@ets_table, {:_, pid, :return, :_, :_})
 
-  defp put_call(calls, [], call) when is_list(calls) do
-    {length(calls), calls ++ [call]}
-  end
-
-  defp put_call(leaf_call, [], call) when is_struct(leaf_call, Call) do
-    {new_index, updated_children} = put_call(leaf_call.children, [], call)
-    {new_index, %Call{leaf_call | children: updated_children}}
-  end
-
-  defp put_call(calls, [h | rest], call) when is_list(calls) do
-    {new_index, updated_call} = put_call(Enum.at(calls, h), rest, call)
-    {new_index, List.replace_at(calls, h, updated_call)}
-  end
-
-  defp put_call(tree_call, path, call) when is_struct(tree_call, Call) do
-    {new_index, updated_children} = put_call(tree_call.children, path, call)
-    {new_index, %Call{tree_call | children: updated_children}}
-  end
-
-  defp update_call(tree, [], update_fn) do
-    update_fn.(tree)
-  end
-
-  defp update_call(tree, [h | rest], update_fn) do
-    updated_children = List.update_at(tree.children, h, &update_call(&1, rest, update_fn))
-    %Call{tree | children: updated_children}
+    {:reply, :ok, state}
   end
 end

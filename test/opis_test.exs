@@ -1,5 +1,5 @@
 defmodule OpisTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   doctest Opis
   alias Opis.Call
 
@@ -16,78 +16,122 @@ defmodule OpisTest do
     on_exit(fn -> Opis.clear() end)
   end
 
-  describe "analyze" do
-    test "returns a call tree for a single function invocation" do
-      Opis.analyze(fn -> Example.a(true, false) end)
+  test "returns a call tree for a single function invocation" do
+    Opis.manalyze(Example.a(true, false))
 
-      {:ok, result} = Opis.calls()
+    result = Opis.calls()
 
-      expected = [
-        %Call{
-          call: {Example, :a, [true, false]},
-          return: false,
-          children: [
-            %Call{
-              call: {Example, :b, [true]},
-              return: true,
-              children: [
-                %Call{
-                  call: {Example, :c, [true]},
-                  return: false,
-                  children: []
-                }
-              ]
-            },
-            %Call{
-              call: {Example, :d, [false]},
-              return: false,
-              children: [
-                %Call{
-                  call: {Example, :e, [false]},
-                  return: false,
-                  children: []
-                },
-                %Call{
-                  call: {Example, :f, [false]},
-                  return: true,
-                  children: []
-                }
-              ]
-            }
-          ]
-        }
-      ]
+    assert [
+             %Call{
+               call: {Example, :a, [true, false]},
+               return: false,
+               children: [
+                 %Call{
+                   call: {Example, :b, [true]},
+                   return: true,
+                   children: [
+                     %Call{
+                       call: {Example, :c, [true]},
+                       return: false,
+                       children: []
+                     }
+                   ]
+                 },
+                 %Call{
+                   call: {Example, :d, [false]},
+                   return: false,
+                   children: [
+                     %Call{
+                       call: {Example, :e, [false]},
+                       return: false,
+                       children: []
+                     },
+                     %Call{
+                       call: {Example, :f, [false]},
+                       return: true,
+                       children: []
+                     }
+                   ]
+                 }
+               ]
+             },
+             _stop_call
+           ] = result
+  end
 
-      assert result == expected
+  test "returns two call trees for two function invocations" do
+    Opis.manalyze do
+      Example.b(true) && Example.e(false)
     end
 
-    test "returns two call trees for two function invocations" do
-      Opis.analyze(fn ->
-        Example.b(true) && Example.e(false)
-      end)
+    result = Opis.calls()
 
-      {:ok, result} = Opis.calls()
+    assert [
+             %Call{
+               call: {Example, :b, [true]},
+               return: true,
+               children: [
+                 %Call{
+                   call: {Example, :c, [true]},
+                   return: false,
+                   children: []
+                 }
+               ]
+             },
+             %Call{
+               call: {Example, :e, [false]},
+               return: false,
+               children: []
+             },
+             _stop_call
+           ] = result
+  end
 
-      expected = [
-        %Call{
-          call: {Example, :b, [true]},
-          return: true,
-          children: [
-            %Call{
-              call: {Example, :c, [true]},
-              return: false,
-              children: []
-            }
-          ]
-        },
-        %Call{
-          call: {Example, :e, [false]},
-          return: false,
-          children: []
-        }
-      ]
+  describe "clear/1" do
+    setup do
+      Opis.manalyze(Example.e(false))
 
-      assert result == expected
+      task = Task.async(fn -> Opis.manalyze(Example.b(true)) end)
+      Task.await(task)
+
+      %{task_pid: task.pid}
+    end
+
+    test "clears data for pid" do
+      assert Enum.any?(Opis.calls())
+
+      Opis.clear(self())
+
+      refute Enum.any?(Opis.calls())
+    end
+
+    test "clearing data for one pid does not clear data for others", %{task_pid: task_pid} do
+      assert Enum.any?(Opis.calls(task_pid))
+
+      Opis.clear(self())
+
+      assert Enum.any?(Opis.calls(task_pid))
+    end
+  end
+
+  describe "clear/0" do
+    setup do
+      Opis.manalyze(Example.e(false))
+
+      task = Task.async(fn -> Opis.manalyze(Example.b(true)) end)
+      Task.await(task)
+
+      %{task_pid: task.pid}
+    end
+
+    test "clears data for all pids", %{task_pid: task_pid} do
+      assert Enum.any?(Opis.calls())
+      assert Enum.any?(Opis.calls(task_pid))
+
+      Opis.clear()
+
+      refute Enum.any?(Opis.calls())
+      refute Enum.any?(Opis.calls(task_pid))
     end
   end
 end

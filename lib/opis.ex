@@ -9,11 +9,11 @@ defmodule Opis do
   Returns the result of the given expression.  Use `calls/1` to get the
   generated call tree.
   """
-  defmacro manalyze(expr) do
+  defmacro manalyze(expr, application) do
     quote do
-      Opis.Server.start_tracing()
+      Opis.Server.start_tracing(unquote(application))
       result = unquote(expr)
-      Opis.Server.stop_tracing()
+      Opis.Server.stop_tracing(unquote(application))
 
       result
     end
@@ -25,10 +25,10 @@ defmodule Opis do
   Returns the result of the given expression.  Use `calls/1` to get the
   generated call tree.
   """
-  def analyze(fun) do
-    Opis.Server.start_tracing()
+  def analyze(fun, application) do
+    Opis.Server.start_tracing(application)
     result = fun.()
-    Opis.Server.stop_tracing()
+    Opis.Server.stop_tracing(application)
 
     result
   end

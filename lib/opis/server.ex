@@ -6,6 +6,8 @@ defmodule Opis.Server do
   alias Opis.Call
   alias Opis.TreeUtils
 
+  @typep application :: atom()
+
   defmodule State do
     @type t :: %__MODULE__{application: atom() | nil, processes: [pid()]}
     defstruct [:application, processes: []]
@@ -20,24 +22,32 @@ defmodule Opis.Server do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec start_tracing() :: :ok
-  @spec start_tracing(pid()) :: :ok
-  def start_tracing(pid \\ self()) do
+  @spec start_tracing(application()) :: :ok
+  @spec start_tracing(pid(), application()) :: :ok
+  def start_tracing(pid \\ self(), application) do
     GenServer.call(__MODULE__, {:start_tracing, pid})
 
+    Enum.each(
+      Application.spec(application, :modules),
+      &:erlang.trace_pattern({&1, :_, :_}, [{:_, [], [{:return_trace}]}], [:local])
+    )
+
     :erlang.trace(pid, true, [:call, tracer: Process.whereis(__MODULE__)])
-    :erlang.trace_pattern({:_, :_, :_}, [{:_, [], [{:return_trace}]}], [:local])
 
     :ok
   end
 
-  @spec stop_tracing() :: :ok
-  @spec stop_tracing(pid()) :: :ok
-  def stop_tracing(pid \\ self()) do
+  @spec stop_tracing(application()) :: :ok
+  @spec stop_tracing(pid(), application()) :: :ok
+  def stop_tracing(pid \\ self(), application) do
     GenServer.call(__MODULE__, {:stop_tracing, pid})
 
-    :erlang.trace_pattern({:_, :_, :_}, false, [:local])
     :erlang.trace(pid, false, [:call, tracer: Process.whereis(__MODULE__)])
+
+    Enum.each(
+      Application.spec(application, :modules),
+      &:erlang.trace_pattern({&1, :_, :_}, false, [:local])
+    )
 
     # Ensure all traces are delivered
     :erlang.trace_delivered(Process.whereis(__MODULE__))

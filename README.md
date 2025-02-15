@@ -1,6 +1,8 @@
 # Opis
 
-A tool for debugging.
+A tool for debugging through recording the parameters and returns values in the call tree of a function.
+
+⚠️ Opis isn't working quite right for OTP-27 due to the tracing changes.  A fix is in development.⚠️
 
 ## Usage
 
@@ -13,10 +15,11 @@ Opis.Server.start_link()
 With that out of the way, now you can analyze a code block:
 
 ```elixir
-Opis.analyze do
+Opis.manalyze do
   MyApp.do_thing()
 end
 ```
+<small>The name `manalyze` is short for "macro analyze".  Better name suggestions are welcome!</small>
 
 This will record all the internal workings of the given code block.  To retrieve this data, use `calls/0`:
 
@@ -42,6 +45,11 @@ This will return a call tree, something like this:
 MyApp.do_thing() => {:ok, :success}
   MyApp.Thing.do_thing() => {:ok, success}
     # etc
+```
+
+There is a non-macro function to perform the equivalent work, named `analyze`:
+```elixir
+Opis.analyze(fn -> MyApp.do_thing() end)
 ```
 
 ## Installation

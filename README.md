@@ -68,4 +68,4 @@ The docs can be found at <https://hexdocs.pm/opis>.
 
 ## Name
 
-One of my other libraries is named [Saturn](https://github.com/instinctscience/saturn), and Saturn's consort is named Ops.  Well, I couldn't name this "Ops" now could I?  Apparently there's another spelling, "Opis," which purportedly also means "plenty" in Latin.
+One of my other libraries is named [Saturn](https://github.com/J3RN/saturn), and Saturn's consort is named Ops.  Well, I couldn't name this "Ops" now could I?  Apparently there's another spelling, "Opis," which purportedly also means "plenty" in Latin.

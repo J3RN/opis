@@ -24,29 +24,6 @@ defmodule Opis.TreeUtils do
     ]
   end
 
-  # @doc """
-  # Performs a post-order traversal of the tree, applying `reducer` to each node
-  # """
-  # @spec tree_reduce(tree, (tree -> [tree]), acc, (tree, acc -> acc)) :: acc when acc: any
-  # def tree_reduce(tree, child_fun, acc, reducer) do
-  #   children = child_fun.(tree)
-  #   new_acc = do_tree_reduce(children, child_fun, acc, reducer)
-  #   reducer.(tree, new_acc)
-  # end
-
-  # defp do_tree_reduce([], _child_fun, acc, _reducer) do
-  #   acc
-  # end
-
-  # defp do_tree_reduce([child | rest], child_fun, acc, reducer) do
-  #   do_tree_reduce(
-  #     rest,
-  #     child_fun,
-  #     tree_reduce(child, child_fun, acc, reducer),
-  #     reducer
-  #   )
-  # end
-
   @doc """
   Maps each node in the tree with `fun` in pre-order
   """

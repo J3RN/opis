@@ -1,13 +1,20 @@
 defmodule Opis do
   @moduledoc """
-  Documentation for `Opis`.
+  The interface for debugging through recording the parameters and return
+  values in the call tree of a function.
   """
 
   @doc """
-  Trace the given process, building a call tree.
+  Trace the given expression, building a call tree.
 
   Returns the result of the given expression.  Use `calls/1` to get the
   generated call tree.
+
+  Example:
+
+      iex> Opis.analyze(Integer.parse("12"))
+      {12, ""}
+
   """
   defmacro analyze(expr) do
     quote do
@@ -19,6 +26,24 @@ defmodule Opis do
     end
   end
 
+  @doc """
+  Trace the given expression, then print out the resulting call tree.
+
+  Returns the result of the given expression.
+
+  Example:
+
+      iex> Opis.analyze_and_print(Integer.parse("12"))
+      #=> Integer.parse("12") => {12, ""}
+      #=>   Integer.parse("12", 10) => {12, ""}
+      #=>     Integer.count_digits("12", 10) => 2
+      #=>       Integer.count_digits_nosign("12", 10, 0) => 2
+      #=>         Integer.count_digits_nosign("2", 10, 1) => 2
+      #=>     :erlang.split_binary("12", 2) => {"12", ""}
+      #=>     :erlang.binary_to_integer("12", 10) => 12
+      #=>       :erts_internal.binary_to_integer("12", 10) => 12
+      {12, ""}
+  """
   defmacro analyze_and_print(expr) do
     quote do
       result = Opis.analyze(unquote(expr))

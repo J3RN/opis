@@ -1,12 +1,20 @@
 defmodule Opis.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/J3RN/opis"
+
   def project do
     [
       app: :opis,
-      version: "0.1.0",
-      elixir: "~> 1.13",
-      deps: deps()
+      version: "0.2.0",
+      source_url: @source_url,
+      elixir: "~> 1.15",
+      package: [
+        licenses: ["MIT"],
+        links: %{source: @source_url}
+      ],
+      deps: deps(),
+      docs: docs()
     ]
   end
 
@@ -19,7 +27,15 @@ defmodule Opis.MixProject do
 
   defp deps do
     [
-      {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false, warn_if_outdated: true}
+    ]
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      extras: ["README.md"]
     ]
   end
 end

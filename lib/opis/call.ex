@@ -1,4 +1,8 @@
 defmodule Opis.Call do
+  @moduledoc """
+  Represents a function call replete with parameters and return value.
+  """
+
   @type t :: %__MODULE__{call: {module(), atom(), [term()]}, children: [t()], return: term()}
   defstruct [:call, :return, children: []]
 

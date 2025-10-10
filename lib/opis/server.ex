@@ -7,6 +7,8 @@ defmodule Opis.Server do
   alias Opis.TreeUtils
 
   defmodule State do
+    @moduledoc false
+
     @type t :: %__MODULE__{application: atom() | nil, processes: [pid()]}
     defstruct [:application, processes: []]
   end

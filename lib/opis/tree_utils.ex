@@ -1,4 +1,6 @@
 defmodule Opis.TreeUtils do
+  @moduledoc false
+
   @type tree :: any()
 
   def put_call(calls, 0, call) do

@@ -1,6 +1,6 @@
 # Opis
 
-A tool for debugging through recording the parameters and returns values in the call tree of a function.
+A tool for debugging through recording the parameters and return values in the call tree of a function.
 
 ⚠️ Opis isn't working quite right for OTP-27 due to the tracing changes.  A fix is in development.⚠️
 
@@ -23,7 +23,7 @@ This will return a call tree, something like this:
 ```elixir
 [
   %Opis.Call{call: {MyApp, :do_thing, []}, return: {:ok, :success}, children: [
-    %Opis.Call{call: {MyApp.Thing.do_thing, []}, return: {:ok, success}, children: [
+    %Opis.Call{call: {MyApp.Thing.do_thing, []}, return: {:ok, :success}, children: [
       # etc
     ]}
   ]}
@@ -34,13 +34,17 @@ This will return a call tree, something like this:
 
 ```
 MyApp.do_thing() => {:ok, :success}
-  MyApp.Thing.do_thing() => {:ok, success}
+  MyApp.Thing.do_thing() => {:ok, :success}
     # etc
 ```
 
 These two steps can be performed in one fell swoop with `Opis.analyze_and_print`:
 ```
 Opis.analyze_and_print(MyApp.do_thing())
+# MyApp.do_thing() => {:ok, :success}
+#   MyApp.Thing.do_thing() => {:ok, :success}
+#     etc
+{:ok, :success}
 ```
 
 
@@ -51,7 +55,7 @@ The package can be installed by adding `opis` to your list of dependencies in `m
 ```elixir
 def deps do
   [
-    {:opis, "~> 0.1.0", only: [:dev, :test]}
+    {:opis, "~> 0.2.0", only: [:dev, :test]}
   ]
 end
 ```

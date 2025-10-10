@@ -34,17 +34,17 @@ defmodule Opis.Server do
   @spec stop_tracing() :: :ok
   @spec stop_tracing(pid()) :: :ok
   def stop_tracing(pid \\ self()) do
-    GenServer.call(__MODULE__, {:stop_tracing, pid})
-
-    :erlang.trace_pattern({:_, :_, :_}, false, [:local])
-    :erlang.trace(pid, false, [:call, tracer: Process.whereis(__MODULE__)])
-
     # Ensure all traces are delivered
-    :erlang.trace_delivered(Process.whereis(__MODULE__))
+    :erlang.trace_delivered(pid)
 
     receive do
       {:trace_delivered, _, _} -> :ok
     end
+
+    GenServer.call(__MODULE__, {:stop_tracing, pid})
+
+    :erlang.trace_pattern({:_, :_, :_}, false, [:local])
+    :erlang.trace(self(), false, [:call, tracer: Process.whereis(__MODULE__)])
   end
 
   @spec calls() :: [Call.t()]
@@ -57,8 +57,13 @@ defmodule Opis.Server do
 
     @ets_table
     |> build_call_tree(pid)
+    # Drop the last call, which is to stop Opis
+    |> safe_tail()
     |> reverse_children()
   end
+
+  defp safe_tail([]), do: []
+  defp safe_tail([_ | rest]), do: rest
 
   defp build_call_tree(ets_table, pid) do
     {calls, _depth} =

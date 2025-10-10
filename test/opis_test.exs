@@ -17,7 +17,7 @@ defmodule OpisTest do
   end
 
   test "returns a call tree for a single function invocation" do
-    Opis.manalyze(Example.a(true, false))
+    Opis.analyze(Example.a(true, false))
 
     result = Opis.calls()
 
@@ -54,13 +54,12 @@ defmodule OpisTest do
                    ]
                  }
                ]
-             },
-             _stop_call
+             }
            ] = result
   end
 
   test "returns two call trees for two function invocations" do
-    Opis.manalyze do
+    Opis.analyze do
       Example.b(true) && Example.e(false)
     end
 
@@ -82,16 +81,15 @@ defmodule OpisTest do
                call: {Example, :e, [false]},
                return: false,
                children: []
-             },
-             _stop_call
+             }
            ] = result
   end
 
   describe "clear/1" do
     setup do
-      Opis.manalyze(Example.e(false))
+      Opis.analyze(Example.e(false))
 
-      task = Task.async(fn -> Opis.manalyze(Example.b(true)) end)
+      task = Task.async(fn -> Opis.analyze(Example.b(true)) end)
       Task.await(task)
 
       %{task_pid: task.pid}
@@ -116,9 +114,9 @@ defmodule OpisTest do
 
   describe "clear/0" do
     setup do
-      Opis.manalyze(Example.e(false))
+      Opis.analyze(Example.e(false))
 
-      task = Task.async(fn -> Opis.manalyze(Example.b(true)) end)
+      task = Task.async(fn -> Opis.analyze(Example.b(true)) end)
       Task.await(task)
 
       %{task_pid: task.pid}

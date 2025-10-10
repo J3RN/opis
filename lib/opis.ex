@@ -19,6 +19,17 @@ defmodule Opis do
     end
   end
 
+  defmacro analyze_and_print(expr) do
+    quote do
+      result = Opis.analyze(unquote(expr))
+
+      for call <- Opis.calls() do
+        IO.puts(call)
+      end
+
+      result
+    end
+  end
 
   @doc """
   Returns the call tree for the current process.

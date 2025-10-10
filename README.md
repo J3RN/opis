@@ -6,19 +6,13 @@ A tool for debugging through recording the parameters and returns values in the 
 
 ## Usage
 
-First, you'll need to start the Opis process:
-
-```elixir
-Opis.Server.start_link()
-```
-
-With that out of the way, now you can analyze a code block:
+Opis allows you to analyze all calls that an expression makes:
 
 ```elixir
 Opis.analyze(MyApp.do_thing())
 ```
 
-This will record all the internal workings of the given code block.  To retrieve this data, use `calls/0`:
+To retrieve this data, use `calls/0`:
 
 ```elixir
 Opis.calls()
@@ -43,6 +37,12 @@ MyApp.do_thing() => {:ok, :success}
   MyApp.Thing.do_thing() => {:ok, success}
     # etc
 ```
+
+These two steps can be performed in one fell swoop with `Opis.analyze_and_print`:
+```
+Opis.analyze_and_print(MyApp.do_thing())
+```
+
 
 ## Installation
 

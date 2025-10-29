@@ -2,8 +2,6 @@
 
 A tool for debugging through recording the parameters and return values in the call tree of a function.
 
-⚠️ Opis isn't working quite right for OTP-27 due to the tracing changes.  A fix is in development.⚠️
-
 ## Usage
 
 Opis allows you to analyze all calls that an expression makes:
